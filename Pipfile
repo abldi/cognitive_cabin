@@ -4,6 +4,12 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+openai-whisper = {git = "git+https://github.com/openai/whisper.git"}
+faster-whisper = "*"
+pyaudio = "*"
+opencv-python = "*"
+ollama = "*"
+timedelta = "*"
 
 [dev-packages]
 
