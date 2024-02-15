@@ -10,6 +10,7 @@ pyaudio = "*"
 opencv-python = "*"
 ollama = "*"
 timedelta = "*"
+pydub = "*"
 
 [dev-packages]
 
