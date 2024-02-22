@@ -11,6 +11,7 @@ opencv-python = "*"
 ollama = "*"
 timedelta = "*"
 pydub = "*"
+webrtcvad = "*"
 
 [dev-packages]
 
