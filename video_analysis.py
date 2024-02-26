@@ -8,70 +8,12 @@ import base64
 import ollama
 
 
-def send_to_llm(image_array):
-    try:
-        image_content_array = []
-
-        for image in image_array:
-            success, encoded_image = cv2.imencode('.jpg', image)
-            image_bytes = encoded_image.tobytes()
-            b64encoded = base64.b64encode(image_bytes)
-            image_content = b64encoded.decode('utf-8')
-            image_content_array.append(image_content)
-
-        send_time = datetime.now()
-        response = ollama.chat(
-            model='llava',
-            messages=[{
-                'role': 'user',
-                'content': 'Describe the picture.',
-                'images': image_content_array
-            }])
-        print(f"\n--------------------\n"
-              f"Took {(datetime.now() - send_time).total_seconds()} seconds")
-        print("R1:" + response['message']['content'])
-
-        cabin_prompt = ("As your in-car AI assistant, you're equipped with the ability to autonomously manage the "
-                        "needs of all passengers, drawing on real-time and historical data to anticipate those needs "
-                        "and decide on the best actions. "
-                        "Your capabilities include : "
-                        "- adjusting the HVAC system (temperature from 16°C to 34°C and airflow level 1-5), "
-                        "- setting the seating recline (1-10 scale), "
-                        "- controlling audio volume (0-10 scale), "
-                        "- positioning the windows (open, mid, close), "
-                        "- customizing cabin lighting (RGB color and intensity level 1-10), "
-                        "- selecting cabin scent (Citrus, Woody, Flowery), "
-                        "- suggesting music preferences (genre and artist). "
-                        "Your main objective is to enhance passenger comfort and safety by smartly coordinating these "
-                        "features. "
-                        "For example, if a child is sleeping in the back seat, you might lower the temperature to "
-                        "improve sleep quality, set the volume to 3, close the windows, emit a woody scent, "
-                        "and play soothing classical music. "
-                        "Your responses will always start by recognizing the current situation (e.g., 'I see that you "
-                        "are sleeping..') followed by your recommendation, communicated in a concise, clear, and "
-                        "friendly tone. You adapt your communication style based on the passenger\'s profile, like "
-                        "adopting a more playful tone with children. You operate without needing direct commands from "
-                        "users, aiming to meet the needs of multiple passengers at once. In the event of conflicting "
-                        "needs, you\'ll devise and explain an appropriate compromise."
-                        "\n\n"
-                        "Here is a description of the current scene, viewed from a realtime camera : ")
-
-        content2 = cabin_prompt + ' ' + response['message']['content']
-        response2 = ollama.chat(
-            model='mistral',
-            messages=[{
-                'role': 'user',
-                'content': content2
-            }])
-        print("R2:" + response2['message']['content'])
-    except Exception as e:
-        print(e)
-
-
 class VideoAnalysis:
     img_height = 480
     img_width = 640
     grid_repr_window = 9
+
+    _observers = []
 
     def __init__(self, device_index=None, video_path=None, width=640, grid_img_nb=9, window_sec=30):
         self.img_width = width
@@ -93,6 +35,9 @@ class VideoAnalysis:
         self.last_image_timestamp = datetime.now()
         self.snapshot_capture_interval = timedelta(seconds=self.grid_repr_window / grid_img_nb)
         self.grid_img_nb = grid_img_nb
+
+    def add_observer(self, observer):
+        self._observers.append(observer)
 
     def create_grid_image(self):
         if len(self.images) == 0:
@@ -142,7 +87,9 @@ class VideoAnalysis:
 
                 cv2.waitKey(1 if self.mode == 'camera' else int(self.video_fps))
 
-                send_to_llm(self.images)
+                for observer in self._observers:
+                    observer(self.images)
+                # send_to_llm(self.images)
         finally:
             print(f"Caught some bad fishes ...")
             self.cap.release()
