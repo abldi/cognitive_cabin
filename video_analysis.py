@@ -59,37 +59,30 @@ class VideoAnalysis:
     def run_forever(self):
         frame_number = 0
 
-        try:
-            print(f"file opened? {self.cap.isOpened()}")
-            while True:
-                ret, frame = self.cap.read()
+        while True:
+            ret, frame = self.cap.read()
 
-                if not ret:
-                    print(f"cannot read frame")
-                    break
+            if not ret:
+                print(f"cannot read frame")
+                break
 
-                frame_number = frame_number + 1
-                frame = cv2.resize(frame, (self.img_width, int(self.img_width * frame.shape[0] / frame.shape[1])))
+            frame_number = frame_number + 1
+            frame = cv2.resize(frame, (self.img_width, int(self.img_width * frame.shape[0] / frame.shape[1])))
 
-                if datetime.now() - self.last_image_timestamp > self.snapshot_capture_interval:
-                    self.images.append(frame)
-                    self.last_image_timestamp = datetime.now()
-                    if len(self.images) > self.grid_img_nb:
-                        self.images.pop(0)
+            if datetime.now() - self.last_image_timestamp > self.snapshot_capture_interval:
+                self.images.append(frame)
+                self.last_image_timestamp = datetime.now()
+                if len(self.images) > self.grid_img_nb:
+                    self.images.pop(0)
 
-                if len(self.images) != self.grid_img_nb:
-                    sleep((1 if self.mode == 'camera' else int(self.video_fps)) / 1000)
-                    continue
+            if len(self.images) != self.grid_img_nb:
+                sleep((1 if self.mode == 'camera' else int(self.video_fps)) / 1000)
+                continue
 
-                cv2.imshow("Live Current", cv2.resize(frame, (1066, 600)))
-                cv2.imshow("Grid (camera)", cv2.resize(self.create_grid_image(), (1066, 600)))
+            cv2.imshow("Live Current", cv2.resize(frame, (1066, 600)))
+            cv2.imshow("Grid (camera)", cv2.resize(self.create_grid_image(), (1066, 600)))
 
-                cv2.waitKey(1 if self.mode == 'camera' else int(self.video_fps))
+            cv2.waitKey(1 if self.mode == 'camera' else int(self.video_fps))
 
-                for observer in self._observers:
-                    observer(self.images)
-                # send_to_llm(self.images)
-        finally:
-            print(f"Caught some bad fishes ...")
-            self.cap.release()
-            cv2.destroyAllWindows()
+            for observer in self._observers:
+                observer(self.create_grid_image())
