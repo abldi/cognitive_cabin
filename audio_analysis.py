@@ -8,6 +8,7 @@ import webrtcvad
 import pyaudio
 from pydub import AudioSegment
 from pydub.utils import make_chunks
+import noisereduce as nr
 
 
 def list_audio_devices():
@@ -54,7 +55,7 @@ class AudioAnalysis:
         self.thread_lock = threading.Lock()
         self.audio_to_process = AudioSegment.empty()
         self.vad = webrtcvad.Vad()
-        self.vad.set_mode(1)
+        self.vad.set_mode(3)#High agresiveness for the vad filter
         self.model = fw.WhisperModel(model_name, device="cuda", compute_type="float16")
         self.p = pyaudio.PyAudio()
         self.stream = self.p.open(input_device_index=device_index,
@@ -75,6 +76,7 @@ class AudioAnalysis:
         return None, pyaudio.paContinue
 
     def transcribe_chunk(self, chunk_file):
+        # reduced_noise_audio = nr.reduce_noise(y=chunk_file,sr=16000,prop_decrease=0.8)
         segments, info = self.model.transcribe(chunk_file, length_penalty=0.1, beam_size=5, vad_filter=False,
                                                language="en")
         try:
@@ -97,7 +99,7 @@ class AudioAnalysis:
                 chunks = list(reversed(make_chunks(self.audio_to_process, chunk_duration_ms)))
 
                 for i, chunk in enumerate(chunks[1:]):
-                    if not self.vad.is_speech(chunk.raw_data, 16000):
+                    if not self.vad.is_speech(nr.reduce_noise(y=chunk.raw_data,sr=16000,prop_decrease=0.8), 16000): #Detect silence ((?))
                         split_at = (len(chunks) - i - 1) * chunk_duration_ms
                         part_to_process = self.audio_to_process[0:split_at]
                         self.audio_to_process = self.audio_to_process[split_at:]

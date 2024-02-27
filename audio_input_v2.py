@@ -1,15 +1,17 @@
 import faster_whisper as fw
-import os
+import noisereduce as nr
 import pyaudio
 import webrtcvad as vtad
 import numpy as np
-import io
+from scipy.io import wavfile
+import os
 
 #Global Constants
 SAMPLE_RATE=16000
 FRAME_DURATION_MS = 20
 CHANNELS=1
 CHUNK_SIZE = int(SAMPLE_RATE * FRAME_DURATION_MS / 1000)
+FILE_NAME = "tmp_reducednoise.wav"
 
 #Functions
 def obtain_audio():
@@ -36,8 +38,10 @@ def obtain_audio():
 def check_speech(iterator,vad):
     try:
         audio_data = next(iterator)
-        audio_data_bytes = np.frombuffer(audio_data, dtype=np.int16).tobytes()
-        return(vad.is_speech(audio_data_bytes,SAMPLE_RATE))  
+        audio_data_bytes = np.frombuffer(audio_data, dtype=np.int16)
+        #Try to reduce the noise though is a small chunk
+        noisered_data = nr.reduce_noise(y=audio_data_bytes,sr=16000,prop_decrease=1)
+        return(vad.is_speech(noisered_data,SAMPLE_RATE))  
     except StopIteration:
         return False  
 
@@ -62,6 +66,7 @@ def transcribe(model, iterator,vad):
     try:
         first_segment = next(segments)
         text = first_segment.text
+        # os.remove(FILE_NAME)#noise reduction removed
         return text
     except StopIteration:
         return ""
