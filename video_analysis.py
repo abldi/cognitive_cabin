@@ -4,8 +4,6 @@ from time import sleep
 
 import cv2
 import numpy as np
-import base64
-import ollama
 
 
 class VideoAnalysis:
@@ -62,11 +60,12 @@ class VideoAnalysis:
         frame_number = 0
 
         try:
+            print(f"file opened? {self.cap.isOpened()}")
             while True:
                 ret, frame = self.cap.read()
 
                 if not ret:
-                    print('cannot read frame')
+                    print(f"cannot read frame")
                     break
 
                 frame_number = frame_number + 1
