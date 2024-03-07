@@ -12,10 +12,10 @@ from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
 from video_analysis import VideoAnalysis
-
+from outputSumm import getSpeech
 store = {}
 
-set_debug(True)
+set_debug(False)
 
 
 def convert_image_to_b64(image):
@@ -53,6 +53,7 @@ def process(image_grid):
 
     # chain1 = prompt1 | llava_n_ctx | llm_cabin | output_parser
     chain1 = llava_n_ctx | llm_cabin | output_parser
+    
 
     # chain1_w_msg_hist = RunnableWithMessageHistory(
     #     chain1,
@@ -81,6 +82,11 @@ def process(image_grid):
 
     response2 = chain2_w_msg_hist.invoke({"input": response1},
                                          config={"configurable": {"session_id": "test"}})
+    
+    #TTS attach
+    print("response1: " + response1)
+    print("response2: " + response2)
+    getSpeech(response1)
 
     add_session_message('test', response1)
 
@@ -94,7 +100,7 @@ if __name__ == '__main__':
     #     grid_img_nb=9,
     #     width=500)
     va = VideoAnalysis(
-        test_img_path='/home/tamaya/Documents/cognitive_cabin/sample_1.jpg'
+        video_path="C:\\Users\\aleja\\Desktop\\Work\\Simons\\cognitive_cabin\\14.02.2024\\landscape_video_sample_1.mp4"
     )
     va.add_observer(process)
     va.run_forever()
