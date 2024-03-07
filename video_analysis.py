@@ -16,6 +16,7 @@ class VideoAnalysis:
     def __init__(self, device_index=None, video_path=None, test_img_path=None, width=640, grid_img_nb=9, window_sec=30):
         self.img_width = width
         self.grid_repr_window = window_sec
+        self.test_image = None
 
         if test_img_path is not None:
             self.test_image = cv2.imread(test_img_path)
