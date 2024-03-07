@@ -1,6 +1,6 @@
 import math
 from datetime import datetime, timedelta
-from time import sleep
+from time import sleep, time
 
 import cv2
 import numpy as np
@@ -13,11 +13,13 @@ class VideoAnalysis:
 
     _observers = []
 
-    def __init__(self, device_index=None, video_path=None, width=640, grid_img_nb=9, window_sec=30):
+    def __init__(self, device_index=None, video_path=None, test_img_path=None, width=640, grid_img_nb=9, window_sec=30):
         self.img_width = width
         self.grid_repr_window = window_sec
 
-        if device_index is not None:
+        if test_img_path is not None:
+            self.test_image = cv2.imread(test_img_path)
+        elif device_index is not None:
             self.mode = 'camera'
             self.cap = cv2.VideoCapture(device_index)
         elif video_path is not None:
@@ -59,6 +61,12 @@ class VideoAnalysis:
     def run_forever(self):
         frame_number = 0
 
+        if self.test_image is not None:
+            while True:
+                for observer in self._observers:
+                    observer(self.test_image)
+                sleep(1)
+
         while True:
             ret, frame = self.cap.read()
 
@@ -78,6 +86,8 @@ class VideoAnalysis:
             if len(self.images) != self.grid_img_nb:
                 sleep((1 if self.mode == 'camera' else int(self.video_fps)) / 1000)
                 continue
+
+            # cv2.imwrite(f"sample_{time()}.jpg", self.create_grid_image())
 
             cv2.imshow("Live Current", cv2.resize(frame, (1066, 600)))
             cv2.imshow("Grid (camera)", cv2.resize(self.create_grid_image(), (1066, 600)))
