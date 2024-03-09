@@ -1,6 +1,0 @@
-PyAudio~=0.2.14
-webrtcvad~=2.0.10
-pydub~=0.25.1
-numpy~=1.26.4
-opencv-python~=4.9.0.80
-ollama~=0.1.6

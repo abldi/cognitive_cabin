@@ -1,21 +1,22 @@
 import base64
 import io
+import sys
 
 import cv2
 from langchain.globals import set_debug
 from langchain_community.chat_message_histories import ChatMessageHistory
 from langchain_community.llms.ollama import Ollama
-from langchain_core.chat_history import BaseChatMessageHistory
-from langchain_core.messages import BaseMessage
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
 
+from text_to_speech import TextToSpeech
 from video_analysis import VideoAnalysis
-from outputSumm import getSpeech
-store = {}
 
-set_debug(False)
+store = {}
+text_to_speech = TextToSpeech()
+
+set_debug(True)
 
 
 def convert_image_to_b64(image):
@@ -82,25 +83,18 @@ def process(image_grid):
 
     response2 = chain2_w_msg_hist.invoke({"input": response1},
                                          config={"configurable": {"session_id": "test"}})
-    
-    #TTS attach
-    print("response1: " + response1)
-    print("response2: " + response2)
-    getSpeech(response1)
+
+    summary = text_to_speech.summarize(response2)
+    text_to_speech.synthesize(summary)
 
     add_session_message('test', response1)
 
 
 if __name__ == '__main__':
-    # process([cv2.imread('/home/tamaya/Screenshots/Screenshot from 2024-02-27 19-02-45.png')])
-    # va = VideoAnalysis(device_index=0, window_sec=3, grid_img_nb=9)
-    # va = VideoAnalysis(
-    #     video_path='/home/tamaya/Documents/cognitive_cabin/test_stuff/14.02.2024/portrait_video_sample_1.mp4',
-    #     window_sec=9,
-    #     grid_img_nb=9,
-    #     width=500)
-    va = VideoAnalysis(
-        video_path="C:\\Users\\aleja\\Desktop\\Work\\Simons\\cognitive_cabin\\14.02.2024\\landscape_video_sample_1.mp4"
-    )
+    if len(sys.argv) != 2:
+        raise Exception(f"Wrong arguments. Aborting.")
+
+    va = VideoAnalysis(video_path=sys.argv[1])
+    #va = VideoAnalysis(test_img_path='test_stuff/grid_test.jpg')
     va.add_observer(process)
     va.run_forever()
