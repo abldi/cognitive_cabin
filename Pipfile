@@ -17,6 +17,8 @@ elevenlabs = "0.3.0b0"
 imageio = "*"
 matplotlib = "*"
 scikit-image = "*"
+pyqt5 = "*"
+iio = "*"
 
 [dev-packages]
 

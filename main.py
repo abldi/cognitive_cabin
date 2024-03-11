@@ -1,100 +1,99 @@
 import base64
-import io
+import json
 import sys
+from datetime import datetime
+from time import time
 
 import cv2
-from langchain.globals import set_debug
-from langchain_community.chat_message_histories import ChatMessageHistory
-from langchain_community.llms.ollama import Ollama
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
-from langchain_core.runnables.history import RunnableWithMessageHistory
+from ollama import Client
+import ollama
 
 from text_to_speech import TextToSpeech
 from video_analysis import VideoAnalysis
 
-store = {}
+client = Client(host='http://localhost:11434')
 text_to_speech = TextToSpeech()
 
-set_debug(True)
+history = []
+
+llm_cabin_assistant = "mistral_cabin_assistant"
+llm_direction_assistant_extractor = "mistral_direction_assistant_extractor"
+llm_picture_descriptor = "llava_picture_descriptor"
+
+llms = [
+    llm_cabin_assistant,
+    llm_direction_assistant_extractor,
+    llm_picture_descriptor
+]
+
+
+def update_models():
+    ollama.pull('llava')
+    ollama.pull('mistral')
+
+    for llm in llms:
+        try:
+            ollama.delete(llm)
+        except ollama.ResponseError:
+            print(f"warning - no '{llm}' model to delete")
+            pass
+        with open(f"./model_files/{llm}.modelfile", 'r') as mf:
+            ollama.create(llm, modelfile=mf.read())
+
+    ollama_list = ollama.list()
+    for model in ollama_list['models']:
+        print(model['name'])
 
 
 def convert_image_to_b64(image):
-    success, encoded_image = cv2.imencode('.png', image)
-    buffered = io.BytesIO(encoded_image)
-    return base64.b64encode(buffered.getvalue()).decode("utf-8")
+    success, encoded_image = cv2.imencode('.jpg', image)
+    bts = encoded_image.tobytes()
+    b64encoded = base64.b64encode(bts)
+    return b64encoded.decode('utf-8')
 
 
-def get_session_history(session_id: str):
-    if session_id not in store:
-        store[session_id] = ChatMessageHistory()
-    return store[session_id]
+def process(images):
+    global history
 
+    t1 = time()
+    content = [convert_image_to_b64(img) for img in images]
+    picture_description = ollama.chat(model=llm_picture_descriptor, messages=[{
+        'role': 'user',
+        'content': ' ',
+        'images': content
+    }])
+    t2 = time()
+    print(f"###################\n{picture_description['message']['content']}")
+    print(f"llm_picture_descriptor took {(t2 - t1)} seconds")
 
-def add_session_message(session_id: str, message) -> None:
-    session_history = get_session_history(session_id)
-    session_history.add_message(message)
+    cabin_assistant_response = ollama.chat(model=llm_cabin_assistant, messages=[{
+        'role': 'user',
+        'content': json.dumps({
+            'current_scene_description': picture_description['message']['content'],
+            'history': history
+        })
+    }])
+    t3 = time()
+    print(f"###################\n{cabin_assistant_response['message']['content']}")
+    print(f"llm_cabin_assistant took {(t3 - t2)} seconds")
 
-
-def process(image_grid):
-    llm_cabin = Ollama(model="mistral-cabin-assistant")
-    llm_json_directive = Ollama(model="direction-assistant-extractor")
-    llm_llava = Ollama(model="llava-picture-descriptor")
-
-    image_b64 = convert_image_to_b64(image_grid)
-
-    # prompt1 = ChatPromptTemplate.from_messages(
-    #     [
-    #         MessagesPlaceholder(variable_name="history"),
-    #         ("system", "{input}"),
-    #     ]
-    # )
-    llava_n_ctx = llm_llava.bind(images=[image_b64])
-    output_parser = StrOutputParser()
-
-    # chain1 = prompt1 | llava_n_ctx | llm_cabin | output_parser
-    chain1 = llava_n_ctx | llm_cabin | output_parser
-    
-
-    # chain1_w_msg_hist = RunnableWithMessageHistory(
-    #     chain1,
-    #     get_session_history,
-    #     input_messages_key="input",
-    #     history_messages_key="history",
-    # )
-    # response1 = chain1_w_msg_hist.invoke({"input": "Describe the image."},
-    #                                      config={"configurable": {"session_id": "test"}})
-    response1 = chain1.invoke("Describe the image.")
-
-    prompt2 = ChatPromptTemplate.from_messages(
-        [
-            MessagesPlaceholder(variable_name="history"),
-            ("system", "{input}"),
-        ]
-    )
-    chain2 = prompt2 | llm_json_directive | output_parser
-
-    chain2_w_msg_hist = RunnableWithMessageHistory(
-        chain2,
-        get_session_history,
-        input_messages_key="input",
-        history_messages_key="history",
-    )
-
-    response2 = chain2_w_msg_hist.invoke({"input": response1},
-                                         config={"configurable": {"session_id": "test"}})
-
-    summary = text_to_speech.summarize(response2)
-    text_to_speech.synthesize(summary)
-
-    add_session_message('test', response1)
+    history.append([str(datetime.timestamp(datetime.now())), cabin_assistant_response['message']['content']])
+    json_directive_response = ollama.chat(model=llm_direction_assistant_extractor, messages=[{
+        'role': 'user',
+        'content': cabin_assistant_response['message']['content']
+    }])
+    t4 = time()
+    print(f"###################\n{json_directive_response['message']['content']}")
+    print(f"llm_cabin_assistant took {(t4 - t3)} seconds")
 
 
 if __name__ == '__main__':
+    # update_models()
+
     if len(sys.argv) != 2:
         raise Exception(f"Wrong arguments. Aborting.")
 
     va = VideoAnalysis(video_path=sys.argv[1])
-    #va = VideoAnalysis(test_img_path='test_stuff/grid_test.jpg')
+    # va = VideoAnalysis(debug=True)
     va.add_observer(process)
     va.run_forever()

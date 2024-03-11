@@ -1,15 +1,14 @@
-import os.path
-
-import matplotlib.pyplot as plt
-from skimage.transform import resize
 import math
+import os
 from datetime import datetime, timedelta
 from time import sleep
 
+import cv2
+from imageio.v3 import imread
 import imageio
 import numpy as np
 
-first_grid_file_path = 'test_stuff/grid_test.jpg'
+save_grid_test_img = True
 
 
 class VideoAnalysis:
@@ -19,12 +18,15 @@ class VideoAnalysis:
 
     _observers = []
 
-    def __init__(self, device_index=None, video_path=None, test_img_path=None, grid_img_nb=9, window_sec=30):
+    def __init__(self, device_index=None, video_path=None, debug=False, grid_img_nb=9, window_sec=30):
         self.grid_repr_window = window_sec
         self.test_image = None
+        self.debug = debug
 
-        if test_img_path is not None:
-            self.test_image = imageio.imread(test_img_path)
+        if debug:
+            self.test_image_contents = []
+            for i in range(0, 9):
+                self.test_image_contents.append(imread(f"./grid_test/{i}.jpg"))
         elif device_index is not None:
             self.mode = 'camera'
             self.reader = imageio.get_reader('<video0>')
@@ -67,10 +69,10 @@ class VideoAnalysis:
         buffering_str = ''
         first_grid_saved = False
 
-        if self.test_image is not None:
+        if self.debug:
             while True:
                 for observer in self._observers:
-                    observer(self.test_image)
+                    observer(self.test_image_contents)
                 sleep(1)
 
         for frame in self.reader:
@@ -82,6 +84,12 @@ class VideoAnalysis:
                 if len(self.images) > self.grid_img_nb:
                     self.images.pop(0)
 
+            cv2.imshow("Frame", cv2.resize(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR),
+                                           (frame.shape[1] // 2, frame.shape[0] // 2)))
+            cv2.imshow("Grid", cv2.resize(cv2.cvtColor(self.create_grid_image(), cv2.COLOR_RGB2BGR),
+                                          (frame.shape[1] // 2, frame.shape[0] // 2)))
+            cv2.waitKey(1)
+
             if len(self.images) != self.grid_img_nb:
                 sleep((1 if self.mode == 'camera' else int(self.video_fps)) / 1000)
 
@@ -91,17 +99,16 @@ class VideoAnalysis:
                     print(buffering_str)
                 continue
 
-            if not first_grid_saved:
-                imageio.imwrite(first_grid_file_path, self.create_grid_image())
-
-            plt.imshow(frame)
-            plt.axis('off')
-            plt.show(block=False)
-
-            if self.mode == 'camera':
-                sleep(self.video_fps / 1000)
-            elif self.mode == 'video':
-                sleep(self.video_fps / 1000)
+            if not first_grid_saved and save_grid_test_img:
+                dir_name = './grid_test'
+                if not os.path.exists(dir_name):
+                    os.makedirs(dir_name)
+                i = 0
+                for img in self.images:
+                    imageio.imwrite(f"{dir_name}/{i}.jpg", img)
+                    i = i + 1
+                first_grid_saved = True
 
             for observer in self._observers:
-                observer(self.create_grid_image())
+                observer(self.images)
+                # observer(self.create_grid_image())

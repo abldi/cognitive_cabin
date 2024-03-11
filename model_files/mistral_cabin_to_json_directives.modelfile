@@ -1,0 +1,23 @@
+FROM mistral
+PARAMETER temperature 0.4
+
+SYSTEM """
+Your task is to extract the information in the provided text and extract the information in a JSON format.
+Here are a few examples of what you should output:
+{
+  "input": " {\n  \"HVAC\": {\n    \"TARGET_TEMPERATURE\": 24,\n    \"VENTILATION\": 0\n  },\n  \"SEAT\\_RECLINE\": null,\n  \"MUSIC\": null,\n  \"SCENT\": \"WOODY\",\n  \"WINDOWS\": {\n    \"FRONT_LEFT\": \"CLOSE\",\n    \"FRONT_RIGHT\": \"CLOSE\",\n    \"BACK_LEFT\": \"CLOSE\",\n    \"BACK_RIGHT\": \"CLOSE\"\n  },\n  \"LIGHTING\": {\n    \"COLOR\": \"WARM_WHITE\",\n    \"INTENSITY\": \"MEDIUM\"\n  }\n}"
+}
+[chain/end] [1:chain:RunnableWithMessageHistory > 5:chain:RunnableSequence > 8:parser:StrOutputParser] [1ms] Exiting Parser run with output:
+{
+  "output": " {\n  \"HVAC\": {\n    \"TARGET_TEMPERATURE\": 24,\n    \"VENTILATION\": 0\n  },\n  \"SEAT\\_RECLINE\": null,\n  \"MUSIC\": null,\n  \"SCENT\": \"WOODY\",\n  \"WINDOWS\": {\n    \"FRONT_LEFT\": \"CLOSE\",\n    \"FRONT_RIGHT\": \"CLOSE\",\n    \"BACK_LEFT\": \"CLOSE\",\n    \"BACK_RIGHT\": \"CLOSE\"\n  },\n  \"LIGHTING\": {\n    \"COLOR\": \"WARM_WHITE\",\n    \"INTENSITY\": \"MEDIUM\"\n  }\n}"
+}
+[chain/end] [1:chain:RunnableWithMessageHistory > 5:chain:RunnableSequence] [8.46s] Exiting Chain run with output:
+{
+  "output": " {\n  \"HVAC\": {\n    \"TARGET_TEMPERATURE\": 24,\n    \"VENTILATION\": 0\n  },\n  \"SEAT\\_RECLINE\": null,\n  \"MUSIC\": null,\n  \"SCENT\": \"WOODY\",\n  \"WINDOWS\": {\n    \"FRONT_LEFT\": \"CLOSE\",\n    \"FRONT_RIGHT\": \"CLOSE\",\n    \"BACK_LEFT\": \"CLOSE\",\n    \"BACK_RIGHT\": \"CLOSE\"\n  },\n  \"LIGHTING\": {\n    \"COLOR\": \"WARM_WHITE\",\n    \"INTENSITY\": \"MEDIUM\"\n  }\n}"
+}
+[chain/end] [1:chain:RunnableWithMessageHistory] [8.48s] Exiting Chain run with output:
+{
+  "output": " {\n  \"HVAC\": {\n    \"TARGET_TEMPERATURE\": 24,\n    \"VENTILATION\": 0\n  },\n  \"SEAT\\_RECLINE\": null,\n  \"MUSIC\": null,\n  \"SCENT\": \"WOODY\",\n  \"WINDOWS\": {\n    \"FRONT_LEFT\": \"CLOSE\",\n    \"FRONT_RIGHT\": \"CLOSE\",\n    \"BACK_LEFT\": \"CLOSE\",\n    \"BACK_RIGHT\": \"CLOSE\"\n  },\n  \"LIGHTING\": {\n    \"COLOR\": \"WARM_WHITE\",\n    \"INTENSITY\": \"MEDIUM\"\n  }\n}"
+}
+
+"""
