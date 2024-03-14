@@ -11,10 +11,10 @@ import ollama
 from text_to_speech import TextToSpeech
 from video_analysis import VideoAnalysis
 
+last_json_instructions = ''
+
 client = Client(host='http://localhost:11434')
 text_to_speech = TextToSpeech()
-
-history = []
 
 llm_cabin_assistant = "mistral_cabin_assistant"
 llm_direction_assistant_extractor = "mistral_direction_assistant_extractor"
@@ -53,7 +53,7 @@ def convert_image_to_b64(image):
 
 
 def process(images):
-    global history
+    global last_json_instructions
 
     t1 = time()
     content = [convert_image_to_b64(img) for img in images]
@@ -70,14 +70,13 @@ def process(images):
         'role': 'user',
         'content': json.dumps({
             'current_scene_description': picture_description['message']['content'],
-            'history': history
+            'last_json_instructions': last_json_instructions
         })
     }])
     t3 = time()
     print(f"###################\n{cabin_assistant_response['message']['content']}")
     print(f"llm_cabin_assistant took {(t3 - t2)} seconds")
 
-    history.append([str(datetime.timestamp(datetime.now())), cabin_assistant_response['message']['content']])
     json_directive_response = ollama.chat(model=llm_direction_assistant_extractor, messages=[{
         'role': 'user',
         'content': cabin_assistant_response['message']['content']
@@ -85,10 +84,11 @@ def process(images):
     t4 = time()
     print(f"###################\n{json_directive_response['message']['content']}")
     print(f"llm_cabin_assistant took {(t4 - t3)} seconds")
+    last_json_instructions = json_directive_response['message']['content']
 
 
 if __name__ == '__main__':
-    # update_models()
+    update_models()
 
     if len(sys.argv) != 2:
         raise Exception(f"Wrong arguments. Aborting.")
