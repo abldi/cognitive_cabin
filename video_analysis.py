@@ -1,11 +1,10 @@
 import math
 import os
+import threading
 from datetime import datetime, timedelta
 from time import sleep
 
 import cv2
-from imageio.v3 import imread
-import imageio
 import numpy as np
 
 save_grid_test_img = True
@@ -19,22 +18,24 @@ class VideoAnalysis:
     _observers = []
 
     def __init__(self, device_index=None, video_path=None, debug=False, grid_img_nb=9, window_sec=30):
+        self.pause_processing = None
         self.grid_repr_window = window_sec
         self.test_image = None
         self.debug = debug
+        self.observer_threads = {}
+        self.thread_stop_event = threading.Event()
 
         if debug:
             self.test_image_contents = []
             for i in range(0, 9):
-                self.test_image_contents.append(imread(f"./grid_test/{i}.jpg"))
+                self.test_image_contents.append(cv2.imread(f"./grid_test/{i}.jpg"))
         elif device_index is not None:
             self.mode = 'camera'
-            self.reader = imageio.get_reader('<video0>')
+            self.reader = cv2.VideoCapture(device_index)
         elif video_path is not None:
             self.mode = 'video'
-            self.reader = imageio.get_reader(video_path)
-            meta_data = self.reader.get_meta_data()
-            self.video_fps = int(meta_data.get('fps'))
+            self.reader = cv2.VideoCapture(video_path)
+            self.video_fps = self.reader.get(cv2.CAP_PROP_FPS)
 
         self.images = []
 
@@ -64,6 +65,12 @@ class VideoAnalysis:
             grid_img[y:y + img.shape[0], x:x + img.shape[1]] = img
         return grid_img
 
+    def run_forever_in_thread(self):
+        thread = threading.Thread(target=self.run_forever)
+        thread.start()
+
+        return thread
+
     def run_forever(self):
         frame_number = 0
         buffering_str = ''
@@ -75,23 +82,33 @@ class VideoAnalysis:
                     observer(self.test_image_contents)
                 sleep(1)
 
-        for frame in self.reader:
+        while not self.thread_stop_event.is_set():
+            if self.pause_processing:
+                sleep(1)
+                continue
+
+            ret, frame = self.reader.read()
+            if not ret:
+                print("Error while reading - end of stream ?")
+                break
+
             frame_number = frame_number + 1
 
-            if datetime.now() - self.last_image_timestamp > self.snapshot_capture_interval:
+            if (datetime.now() - self.last_image_timestamp > self.snapshot_capture_interval or
+                    len(self.images) < self.grid_img_nb):
                 self.images.append(frame)
                 self.last_image_timestamp = datetime.now()
                 if len(self.images) > self.grid_img_nb:
                     self.images.pop(0)
 
-            cv2.imshow("Frame", cv2.resize(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR),
+            cv2.imshow("Frame", cv2.resize(frame,
                                            (frame.shape[1] // 2, frame.shape[0] // 2)))
-            cv2.imshow("Grid", cv2.resize(cv2.cvtColor(self.create_grid_image(), cv2.COLOR_RGB2BGR),
+            cv2.imshow("Grid", cv2.resize(self.create_grid_image(),
                                           (frame.shape[1] // 2, frame.shape[0] // 2)))
             cv2.waitKey(1)
 
             if len(self.images) != self.grid_img_nb:
-                sleep((1 if self.mode == 'camera' else int(self.video_fps)) / 1000)
+                sleep(1 / 1000)
 
                 tmp_str = f"{len(self.images)}/{self.grid_img_nb} images in buffer ..."
                 if buffering_str != tmp_str:
@@ -105,10 +122,15 @@ class VideoAnalysis:
                     os.makedirs(dir_name)
                 i = 0
                 for img in self.images:
-                    imageio.imwrite(f"{dir_name}/{i}.jpg", img)
+                    cv2.imwrite(f"{dir_name}/{i}.jpg", img)
                     i = i + 1
                 first_grid_saved = True
 
             for observer in self._observers:
-                observer(self.images)
-                # observer(self.create_grid_image())
+                if observer not in self.observer_threads or not self.observer_threads[observer].is_alive():
+                    thread = threading.Thread(target=observer, args=(self.images,))
+                    thread.start()
+
+                    self.observer_threads[observer] = thread
+
+        cv2.destroyAllWindows()

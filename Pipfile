@@ -19,6 +19,10 @@ matplotlib = "*"
 scikit-image = "*"
 pyqt5 = "*"
 iio = "*"
+pyttsx3 = "*"
+crewai = "*"
+pygame = "*"
+gtts = "*"
 
 [dev-packages]
 

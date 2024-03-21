@@ -1,16 +1,27 @@
 from elevenlabs import generate, play, stream, voices
 from elevenlabs.client import ElevenLabs
 import time
+from io import BytesIO
+from gtts.tts import gTTS
+import pygame
+import os
 
 from langchain_community.llms.ollama import Ollama
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
+mode = 'dev'  # prod
+
 
 class TextToSpeech:
-    def __init__(self, api_key='your_api_key') -> None:
-        self.api_key = api_key
-        self.client = ElevenLabs(api_key=api_key)
+    global mode
+
+    def __init__(self) -> None:
+        if mode == 'dev':
+            pygame.mixer.init()
+        else:
+            self.api_key = os.getenv('ELEVENLABS_API_KEY')
+            self.client = ElevenLabs(api_key=self.api_key)
 
     def summarize(self, text: str, model="llama2"):
         llm = Ollama(model=model)
@@ -36,30 +47,41 @@ class TextToSpeech:
 
         return chain.invoke({"input": text})
 
-    def synthesize(self, text, voice="Lily", use_stream=False, model="eleven_turbo_v2"):
-        beginning = time.time()
+    def synthesize(self, text, voice="Stanley", use_stream=False, model="eleven_turbo_v2"):
+        if mode == 'dev':
+            tts = gTTS("Welcome aboard the Cognitive Cabin Software. "
+                       "Please make yourself comfortable and enjoy the experience.", lang='en')
 
-        if not use_stream:
-            audio = generate(
-                api_key=self.api_key,
-                text=text,
-                voice=voice,
-                model=model
-            )
-            end = time.time()
-            print(f"\n Model {model} latency is {str(end - beginning)} seconds")
-            play(audio)
+            mp3_fp = BytesIO()
+            tts.write_to_fp(mp3_fp)
+            mp3_fp.seek(0)
+
+            pygame.mixer.music.load(mp3_fp)
+            pygame.mixer.music.play()
         else:
-            audio = generate(
-                api_key=self.api_key,
-                text=text,
-                voice=voice,
-                model=model,
-                stream=True,
-            )
-            end = time.time()
-            print(f"\n Model {model} latency is {str(end - beginning)} seconds")
-            stream(audio)
+            beginning = time.time()
+
+            if not use_stream:
+                audio = generate(
+                    api_key=self.api_key,
+                    text=text,
+                    voice=voice,
+                    model=model
+                )
+                end = time.time()
+                print(f"\n Model {model} latency is {str(end - beginning)} seconds")
+                play(audio)
+            else:
+                audio = generate(
+                    api_key=self.api_key,
+                    text=text,
+                    voice=voice,
+                    model=model,
+                    stream=True,
+                )
+                end = time.time()
+                print(f"\n Model {model} latency is {str(end - beginning)} seconds")
+                stream(audio)
 
     @staticmethod
     def get_voices():
