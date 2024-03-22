@@ -10,20 +10,17 @@ from langchain_community.llms.ollama import Ollama
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 
-mode = 'dev'  # prod
-
 
 class TextToSpeech:
-    global mode
 
     def __init__(self) -> None:
-        if mode == 'dev':
-            pygame.mixer.init()
-        else:
-            self.api_key = os.getenv('ELEVENLABS_API_KEY')
-            self.client = ElevenLabs(api_key=self.api_key)
+        self.mode = 'prod'
+        pygame.mixer.init()
+        self.api_key = 'b75619b87fb87caf47e18639e4cf4098' # os.getenv('ELEVENLABS_API_KEY')
+        self.client = ElevenLabs(api_key=self.api_key)
 
-    def summarize(self, text: str, model="llama2"):
+    @staticmethod
+    def summarize(text: str, model="llama2"):
         llm = Ollama(model=model)
 
         prompt1 = ChatPromptTemplate.from_messages(
@@ -47,10 +44,9 @@ class TextToSpeech:
 
         return chain.invoke({"input": text})
 
-    def synthesize(self, text, voice="Stanley", use_stream=False, model="eleven_turbo_v2"):
-        if mode == 'dev':
-            tts = gTTS("Welcome aboard the Cognitive Cabin Software. "
-                       "Please make yourself comfortable and enjoy the experience.", lang='en')
+    def synthesize(self, text, voice="Dave", use_stream=False, model="eleven_turbo_v2"):
+        if self.mode == 'dev':
+            tts = gTTS(text, lang='en')
 
             mp3_fp = BytesIO()
             tts.write_to_fp(mp3_fp)

@@ -41,6 +41,9 @@ class CognitiveCabin(cmd.Cmd):
     def __init__(self):
         super().__init__()
 
+        text_to_speech.synthesize("Welcome aboard the Cognitive Cabin Software. "
+                                  "Please make yourself comfortable and enjoy the experience.")
+
         self.video_analysis_thread = None
 
         self.video_analysis = VideoAnalysis(device_index=0, window_sec=8)
@@ -62,7 +65,16 @@ class CognitiveCabin(cmd.Cmd):
     def do_resume(self, arg):
         self.video_analysis.pause_processing = False
 
-    def do_exit(self, arg):
+    @staticmethod
+    def do_dev(arg):
+        text_to_speech.mode = 'dev'
+
+    @staticmethod
+    def do_prod(arg):
+        text_to_speech.mode = 'prod'
+
+    @staticmethod
+    def do_exit(arg):
         return True
 
     @staticmethod
