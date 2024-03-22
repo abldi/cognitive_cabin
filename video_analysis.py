@@ -18,7 +18,7 @@ class VideoAnalysis:
     _observers = []
 
     def __init__(self, device_index=None, video_path=None, debug=False, grid_img_nb=9, window_sec=30):
-        self.show = False
+        self.show = True
         self.pause_processing = None
         self.grid_repr_window = window_sec
         self.test_image = None
