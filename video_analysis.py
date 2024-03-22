@@ -18,6 +18,7 @@ class VideoAnalysis:
     _observers = []
 
     def __init__(self, device_index=None, video_path=None, debug=False, grid_img_nb=9, window_sec=30):
+        self.show = False
         self.pause_processing = None
         self.grid_repr_window = window_sec
         self.test_image = None
@@ -100,12 +101,13 @@ class VideoAnalysis:
                 self.last_image_timestamp = datetime.now()
                 if len(self.images) > self.grid_img_nb:
                     self.images.pop(0)
-
-            cv2.imshow("Frame", cv2.resize(frame,
-                                           (frame.shape[1] // 2, frame.shape[0] // 2)))
-            cv2.imshow("Grid", cv2.resize(self.create_grid_image(),
-                                          (frame.shape[1] // 2, frame.shape[0] // 2)))
-            cv2.waitKey(1)
+            
+            if self.show:
+                cv2.imshow("Frame", cv2.resize(frame,
+                                               (frame.shape[1] // 2, frame.shape[0] // 2)))
+                cv2.imshow("Grid", cv2.resize(self.create_grid_image(),
+                                              (frame.shape[1] // 2, frame.shape[0] // 2)))
+                cv2.waitKey(1)
 
             if len(self.images) != self.grid_img_nb:
                 sleep(1 / 1000)

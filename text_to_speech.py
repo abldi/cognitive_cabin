@@ -14,7 +14,7 @@ from langchain_core.prompts import ChatPromptTemplate
 class TextToSpeech:
 
     def __init__(self) -> None:
-        self.mode = 'prod'
+        self.mode = 'dev'
         pygame.mixer.init()
         self.api_key = 'b75619b87fb87caf47e18639e4cf4098' # os.getenv('ELEVENLABS_API_KEY')
         self.client = ElevenLabs(api_key=self.api_key)
