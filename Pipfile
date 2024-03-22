@@ -5,7 +5,7 @@ name = "pypi"
 
 [packages]
 pyaudio = "~=0.2.14"
-opencv-python = "~=4.9.0.80"
+opencv-python-headless = "~=4.9.0.80"
 ollama = "~=0.1.7"
 webrtcvad = "~=2.0.10"
 pydub = "~=0.25.1"
