@@ -4,7 +4,6 @@ import time
 from io import BytesIO
 from gtts.tts import gTTS
 import pygame
-import os
 
 from langchain_community.llms.ollama import Ollama
 from langchain_core.output_parsers import StrOutputParser

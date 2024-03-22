@@ -4,27 +4,20 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-openai-whisper = {git = "git+https://github.com/openai/whisper.git"}
-faster-whisper = "*"
-pyaudio = "*"
-opencv-python = "*"
-ollama = "*"
-timedelta = "*"
-pydub = "*"
-webrtcvad = "*"
-langchain = "*"
-elevenlabs = "0.3.0b0"
-imageio = "*"
-matplotlib = "*"
-scikit-image = "*"
-iio = "*"
-pyttsx3 = "*"
-crewai = "*"
-pygame = "*"
-gtts = "*"
+pyaudio = "~=0.2.14"
+opencv-python = "~=4.9.0.80"
+ollama = "~=0.1.7"
+webrtcvad = "~=2.0.10"
+pydub = "~=0.25.1"
+numpy = "~=1.26.4"
+pygame = "~=2.5.2"
+elevenlabs = "~=0.3.0b0"
+gtts = "~=2.5.1"
+imageio = "~=2.34.0"
+crewai = "~=0.22.5"
+langchain = "~=0.1.12"
 
 [dev-packages]
 
 [requires]
 python_version = "3.11"
-python_full_version = "3.11.6"
