@@ -38,9 +38,10 @@ class CognitiveCabin(cmd.Cmd):
     intro = 'Initializing Cognitive Cabin. Type help or ? to list commands.\n'
     prompt = '(cogcab) '
 
-    def __init__(self):
+    def __init__(self, start_mode="dev"):
         super().__init__()
 
+        text_to_speech.mode = start_mode
         text_to_speech.synthesize("Welcome aboard the Cognitive Cabin Software. "
                                   "Please make yourself comfortable and enjoy the experience.")
 

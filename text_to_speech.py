@@ -43,7 +43,7 @@ class TextToSpeech:
 
         return chain.invoke({"input": text})
 
-    def synthesize(self, text, voice="Dave", use_stream=False, model="eleven_turbo_v2"):
+    def synthesize(self, text, voice="Dave", use_stream=False, model="eleven_turbo_v2", verbose=False):
         if self.mode == 'dev':
             tts = gTTS(text, lang='en')
 
@@ -64,7 +64,8 @@ class TextToSpeech:
                     model=model
                 )
                 end = time.time()
-                print(f"\n Model {model} latency is {str(end - beginning)} seconds")
+                if verbose:
+                    print(f"\n Model {model} latency is {str(end - beginning)} seconds")
                 play(audio)
             else:
                 audio = generate(
