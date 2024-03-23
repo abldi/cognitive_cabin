@@ -4,7 +4,6 @@ ollama~=0.1.7
 webrtcvad~=2.0.10
 pydub~=0.25.1
 numpy~=1.26.4
-pygame~=2.5.2
 elevenlabs~=0.3.0b0
 gTTS~=2.5.1
 imageio~=2.34.0

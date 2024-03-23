@@ -1,9 +1,10 @@
+import os
+import tempfile
+
 from elevenlabs import generate, play, stream, voices
 from elevenlabs.client import ElevenLabs
 import time
-from io import BytesIO
 from gtts.tts import gTTS
-import pygame
 
 from langchain_community.llms.ollama import Ollama
 from langchain_core.output_parsers import StrOutputParser
@@ -11,10 +12,9 @@ from langchain_core.prompts import ChatPromptTemplate
 
 
 class TextToSpeech:
+    mode = 'dev'
 
     def __init__(self) -> None:
-        self.mode = 'dev'
-        pygame.mixer.init()
         self.api_key = 'b75619b87fb87caf47e18639e4cf4098' # os.getenv('ELEVENLABS_API_KEY')
         self.client = ElevenLabs(api_key=self.api_key)
 
@@ -43,16 +43,17 @@ class TextToSpeech:
 
         return chain.invoke({"input": text})
 
-    def synthesize(self, text, voice="Dave", use_stream=False, model="eleven_turbo_v2", verbose=False):
-        if self.mode == 'dev':
+    def synthesize(self, text, voice="Dave", use_stream=False, model="eleven_turbo_v2", verbose=False,
+                   stream_end_callback=lambda: None):
+        if self.mode != 'prod':
             tts = gTTS(text, lang='en')
 
-            mp3_fp = BytesIO()
-            tts.write_to_fp(mp3_fp)
-            mp3_fp.seek(0)
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as fp:
+                tts.save(fp.name)
+                temp_filename = fp.name
 
-            pygame.mixer.music.load(mp3_fp)
-            pygame.mixer.music.play()
+            os.system(f'mpg123 -q {temp_filename}')
+            os.remove(temp_filename)
         else:
             beginning = time.time()
 
@@ -76,8 +77,12 @@ class TextToSpeech:
                     stream=True,
                 )
                 end = time.time()
-                print(f"\n Model {model} latency is {str(end - beginning)} seconds")
+                if verbose:
+                    print(f"\n Model {model} latency is {str(end - beginning)} seconds")
                 stream(audio)
+
+        if stream_end_callback is not None:
+            stream_end_callback()
 
     @staticmethod
     def get_voices():

@@ -1,7 +1,7 @@
 import base64
 import cmd
 import json
-from time import time
+from time import time, sleep
 
 import cv2
 import httpx
@@ -41,18 +41,24 @@ class CognitiveCabin(cmd.Cmd):
     def __init__(self, start_mode="dev"):
         super().__init__()
 
+        self.streaming = True
         text_to_speech.mode = start_mode
         text_to_speech.synthesize("Welcome aboard the Cognitive Cabin Software. "
-                                  "Please make yourself comfortable and enjoy the experience.")
+                                  "Please make yourself comfortable and enjoy the experience.",
+                                  use_stream=True,
+                                  stream_end_callback=self.audio_stream_finished)
 
         self.video_analysis_thread = None
 
         self.video_analysis = VideoAnalysis(device_index=0, window_sec=8)
         self.video_analysis.add_observer(self.process)
 
+    def audio_stream_finished(self):
+        self.streaming = False
+
     def do_start(self, arg):
         if self.video_analysis.pause_processing is None:
-            self.video_analysis_thread = self.video_analysis.run_forever_in_thread()
+            self.video_analysis_thread = self.video_analysis.run_forever_in_thread(self)
         elif self.video_analysis.pause_processing is True:
             self.do_resume(arg)
 
@@ -96,10 +102,18 @@ class CognitiveCabin(cmd.Cmd):
         for model in ollama_list['models']:
             print(model['name'])
 
-    @staticmethod
-    def process(images):
+    def process(self, images):
         global last_json_instructions
 
+        if self.streaming:
+            return False
+
+        self.streaming = True
+        text_to_speech.synthesize("Observation: Ah, a man of culture and facial hair, I see. Peering out the window "
+                                  "like a hawk, waiting for inspiration to strike.",
+                                  use_stream=True,
+                                  stream_end_callback=self.audio_stream_finished)
+        return True
         try:
             t1 = time()
             content = [convert_image_to_b64(img) for img in images]
@@ -127,7 +141,10 @@ class CognitiveCabin(cmd.Cmd):
                 'role': 'user',
                 'content': cabin_assistant_response['message']['content']
             }])
-            text_to_speech.synthesize(cabin_assistant_response['message']['content'])
+            self.streaming = True
+            text_to_speech.synthesize(cabin_assistant_response['message']['content'],
+                                      use_stream=True,
+                                      stream_end_callback=self.audio_stream_finished)
 
             t4 = time()
             print(f"###################\n{json_directive_response['message']['content']}")
@@ -137,6 +154,7 @@ class CognitiveCabin(cmd.Cmd):
             print(f"Exception caught in cognitive_cabin.process() : {re}")
         except httpx.ConnectError as ce:
             print(f"Exception caught in cognitive_cabin.process() : {ce}")
+        return True
 
 
 

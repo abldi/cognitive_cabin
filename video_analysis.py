@@ -18,6 +18,7 @@ class VideoAnalysis:
     _observers = []
 
     def __init__(self, device_index=None, video_path=None, debug=False, grid_img_nb=9, window_sec=30):
+        self.cabin = None
         self.show = True
         self.pause_processing = None
         self.grid_repr_window = window_sec
@@ -66,7 +67,8 @@ class VideoAnalysis:
             grid_img[y:y + img.shape[0], x:x + img.shape[1]] = img
         return grid_img
 
-    def run_forever_in_thread(self):
+    def run_forever_in_thread(self, cognitive_cabin):
+        self.cabin = cognitive_cabin
         thread = threading.Thread(target=self.run_forever)
         thread.start()
 
@@ -101,13 +103,6 @@ class VideoAnalysis:
                 self.last_image_timestamp = datetime.now()
                 if len(self.images) > self.grid_img_nb:
                     self.images.pop(0)
-            #
-            # if self.show:
-            #     cv2.imshow("Frame", cv2.resize(frame,
-            #                                    (frame.shape[1] // 2, frame.shape[0] // 2)))
-            #     cv2.imshow("Grid", cv2.resize(self.create_grid_image(),
-            #                                   (frame.shape[1] // 2, frame.shape[0] // 2)))
-            #     cv2.waitKey(1)
 
             if len(self.images) != self.grid_img_nb:
                 sleep(1 / 1000)
@@ -129,10 +124,9 @@ class VideoAnalysis:
                 first_grid_saved = True
 
             for observer in self._observers:
-                if observer not in self.observer_threads or not self.observer_threads[observer].is_alive():
+                if (not self.cabin.streaming and
+                        (observer not in self.observer_threads or not self.observer_threads[observer].is_alive())):
                     thread = threading.Thread(target=observer, args=(self.images,))
                     thread.start()
 
                     self.observer_threads[observer] = thread
-
-        # cv2.destroyAllWindows()
