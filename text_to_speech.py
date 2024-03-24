@@ -9,7 +9,7 @@ from gtts.tts import gTTS
 class TextToSpeech:
     mode = 'dev'
 
-    voices = ["Dave", "Nicole", "Thomas"]
+    voices = ['Nicole', 'Dave', 'Dorothy', 'Thomas']
     current_voice_index = 0
 
     def __init__(self) -> None:
