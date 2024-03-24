@@ -12,7 +12,8 @@ pydub = "~=0.25.1"
 numpy = "~=1.26.4"
 elevenlabs = "~=0.3.0b0"
 gtts = "~=2.5.1"
-
+tts = "*"
+faster-whisper = "~=1.0.1"
 [dev-packages]
 
 [requires]
