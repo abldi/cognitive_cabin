@@ -1,0 +1,7 @@
+FROM llava 
+PARAMETER temperature 0.5
+
+SYSTEM """
+You will be given as input a few images of a realtime camera feed inside a car cabin.
+Your task is to describe the passengers state and the current condition in the car.
+"""
