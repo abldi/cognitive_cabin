@@ -109,11 +109,7 @@ class CognitiveCabin(cmd.Cmd):
             return False
 
         self.streaming = True
-        text_to_speech.synthesize("Observation: Ah, a man of culture and facial hair, I see. Peering out the window "
-                                  "like a hawk, waiting for inspiration to strike.",
-                                  use_stream=True,
-                                  stream_end_callback=self.audio_stream_finished)
-        return True
+
         try:
             t1 = time()
             content = [convert_image_to_b64(img) for img in images]
