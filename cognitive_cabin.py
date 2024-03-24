@@ -41,13 +41,8 @@ class CognitiveCabin(cmd.Cmd):
     def __init__(self, start_mode="dev"):
         super().__init__()
 
-        self.streaming = True
+        self.streaming = False
         text_to_speech.mode = start_mode
-        text_to_speech.synthesize("Welcome aboard the Cognitive Cabin Software. "
-                                  "Please make yourself comfortable and enjoy the experience.",
-                                  use_stream=True,
-                                  stream_end_callback=self.audio_stream_finished)
-
         self.video_analysis_thread = None
 
         self.video_analysis = VideoAnalysis(device_index=0, window_sec=8)
@@ -124,28 +119,15 @@ class CognitiveCabin(cmd.Cmd):
 
             cabin_assistant_response = ollama.chat(model=llm_cabin_assistant, messages=[{
                 'role': 'user',
-                'content': json.dumps({
-                    'current_scene_description': picture_description['message']['content'],
-                    'last_json_instructions': last_json_instructions
-                })
+                'content': picture_description['message']['content']
             }])
             t3 = time()
             print(f"###################\n{cabin_assistant_response['message']['content']}")
             print(f"llm_cabin_assistant took {(t3 - t2)} seconds")
 
-            json_directive_response = ollama.chat(model=llm_direction_assistant_extractor, messages=[{
-                'role': 'user',
-                'content': cabin_assistant_response['message']['content']
-            }])
             self.streaming = True
             text_to_speech.synthesize(cabin_assistant_response['message']['content'],
-                                      use_stream=True,
                                       stream_end_callback=self.audio_stream_finished)
-
-            t4 = time()
-            print(f"###################\n{json_directive_response['message']['content']}")
-            print(f"llm_cabin_assistant took {(t4 - t3)} seconds")
-            last_json_instructions = json_directive_response['message']['content']
         except ollama._types.ResponseError as re:
             print(f"Exception caught in cognitive_cabin.process() : {re}")
         except httpx.ConnectError as ce:
