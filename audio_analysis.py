@@ -19,29 +19,6 @@ def list_audio_devices():
         print(f"{i}: {device_info.get('name')}")
 
 
-def test_compatibility():
-    default_device_index = 9
-
-    p = pyaudio.PyAudio()
-    sample_rates = [8000, 11025, 16000, 22050, 32000, 44100, 48000, 96000]
-    audio_format = pyaudio.paInt16
-    channels = 1
-
-    print(f"Supported sample rates for device {default_device_index}:")
-    for rate in sample_rates:
-        try:
-            if p.is_format_supported(rate,
-                                     input_device=default_device_index,
-                                     input_channels=channels,
-                                     input_format=audio_format):
-                print(f"{rate} Hz")
-        except ValueError:
-            # This sample rate is not supported
-            pass
-
-    p.terminate()
-
-
 class AudioAnalysis:
     thread_lock = None
     audio_to_process = None
@@ -59,23 +36,43 @@ class AudioAnalysis:
         self.vad.set_mode(3)
         self.model = fw.WhisperModel(model_name, device="cuda", compute_type="float16")
         self.p = pyaudio.PyAudio()
-        device_index = 0
+        self.device_index = 0
 
         if os.path.exists(conf_file):
             with open(conf_file, 'r') as file:
                 file_content = file.read()
-                device_index = int(file_content.strip())
+                self.device_index = int(file_content.strip())
         else:
             with open(conf_file, 'w') as file:
-                file.write(str(device_index))
+                file.write(str(self.device_index))
 
-        self.stream = self.p.open(input_device_index=device_index,
+        self.stream = self.p.open(input_device_index=self.device_index,
                                   format=pyaudio.paInt16,
                                   channels=1,
                                   rate=16000,
                                   input=True,
                                   frames_per_buffer=1024,
                                   stream_callback=self.stream_record_callback)
+
+    def test_compatibility(self):
+        p = pyaudio.PyAudio()
+        sample_rates = [8000, 11025, 16000, 22050, 32000, 44100, 48000, 96000]
+        audio_format = pyaudio.paInt16
+        channels = 1
+
+        print(f"Supported sample rates for device {self.device_index}:")
+        for rate in sample_rates:
+            try:
+                if p.is_format_supported(rate,
+                                         input_device=self.device_index,
+                                         input_channels=channels,
+                                         input_format=audio_format):
+                    print(f"{rate} Hz")
+            except ValueError:
+                # This sample rate is not supported
+                pass
+
+        p.terminate()
 
     def add_observer(self, observer):
         self._observers.append(observer)
