@@ -1,5 +1,5 @@
-import datetime
 import io
+import os.path
 import tempfile
 import threading
 import time
@@ -49,14 +49,26 @@ class AudioAnalysis:
     model = None
     p = None
     stream = None
+    max_audio_buffer_length = 15
+    _observers = []
 
-    def __init__(self, device_index, model_name='medium.en'):
+    def __init__(self, conf_file, model_name='small.en'):
         self.thread_lock = threading.Lock()
         self.audio_to_process = AudioSegment.empty()
         self.vad = webrtcvad.Vad()
-        self.vad.set_mode(1)
+        self.vad.set_mode(3)
         self.model = fw.WhisperModel(model_name, device="cuda", compute_type="float16")
         self.p = pyaudio.PyAudio()
+        device_index = 0
+
+        if os.path.exists(conf_file):
+            with open(conf_file, 'r') as file:
+                file_content = file.read()
+                device_index = int(file_content.strip())
+        else:
+            with open(conf_file, 'w') as file:
+                file.write(str(device_index))
+
         self.stream = self.p.open(input_device_index=device_index,
                                   format=pyaudio.paInt16,
                                   channels=1,
@@ -64,6 +76,9 @@ class AudioAnalysis:
                                   input=True,
                                   frames_per_buffer=1024,
                                   stream_callback=self.stream_record_callback)
+
+    def add_observer(self, observer):
+        self._observers.append(observer)
 
     def stream_record_callback(self, in_data, frame_count, time_info, status):
         new_audio = AudioSegment.from_raw(io.BytesIO(in_data), sample_width=2, frame_rate=16000, channels=1)
@@ -84,9 +99,13 @@ class AudioAnalysis:
         except StopIteration:
             return ""
 
-    def run_forever(self):
-        transcripts = []
+    def run_forever_in_thread(self):
+        thread = threading.Thread(target=self.run_forever)
+        thread.start()
 
+        return thread
+
+    def run_forever(self):
         try:
             while True:
                 if self.audio_to_process.duration_seconds < 1:
@@ -97,20 +116,29 @@ class AudioAnalysis:
                 chunks = list(reversed(make_chunks(self.audio_to_process, chunk_duration_ms)))
 
                 for i, chunk in enumerate(chunks[1:]):
-                    if not self.vad.is_speech(chunk.raw_data, 16000):
+                    if (not self.vad.is_speech(chunk.raw_data, 16000) or
+                            self.audio_to_process.duration_seconds > self.max_audio_buffer_length):
                         split_at = (len(chunks) - i - 1) * chunk_duration_ms
                         part_to_process = self.audio_to_process[0:split_at]
                         self.audio_to_process = self.audio_to_process[split_at:]
 
+                        if self.audio_to_process.duration_seconds > self.max_audio_buffer_length:
+                            print(f"audio length is {self.audio_to_process.duration_seconds} | we split at {split_at}, on total of {len(chunks)}")
+
                         temp_file = tempfile.NamedTemporaryFile(delete=True, suffix='.wav')
                         part_to_process.export(temp_file.name, format="wav")
                         transcription = self.transcribe_chunk(temp_file.name).strip()
-                        if transcription != '':
-                            now = datetime.datetime.now()
-                            transcripts.append({
-                                'start': now,
-                                'transcript': transcription,
-                                'end': now + datetime.timedelta(seconds=split_at / 1000)})
+
+                        for observer in self._observers:
+                            observer(transcription)
+
+
+                        # if transcription != '':
+                        #     now = datetime.datetime.now()
+                        #     transcripts.append({
+                        #         'start': now,
+                        #         'transcript': transcription,
+                        #         'end': now + datetime.timedelta(seconds=split_at / 1000)})
                         break
 
         finally:
