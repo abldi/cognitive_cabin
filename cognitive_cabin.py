@@ -72,6 +72,9 @@ class CognitiveCabin(cmd.Cmd):
         with open(audio_conf_file, 'w') as file:
             file.write(arg)
 
+    def do_test_device(self, arg):
+        self.audio_analysis.test_compatibility()
+
     def do_start(self, arg):
         if self.video_analysis.pause_processing is None:
             self.video_analysis_thread = self.video_analysis.run_forever_in_thread(self)

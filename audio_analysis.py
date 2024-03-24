@@ -29,6 +29,8 @@ class AudioAnalysis:
     max_audio_buffer_length = 15
     _observers = []
 
+    rate = 16000
+
     def __init__(self, conf_file, model_name='small.en'):
         self.thread_lock = threading.Lock()
         self.audio_to_process = AudioSegment.empty()
@@ -49,7 +51,7 @@ class AudioAnalysis:
         self.stream = self.p.open(input_device_index=self.device_index,
                                   format=pyaudio.paInt16,
                                   channels=1,
-                                  rate=16000,
+                                  rate=self.rate,
                                   input=True,
                                   frames_per_buffer=1024,
                                   stream_callback=self.stream_record_callback)
@@ -78,7 +80,7 @@ class AudioAnalysis:
         self._observers.append(observer)
 
     def stream_record_callback(self, in_data, frame_count, time_info, status):
-        new_audio = AudioSegment.from_raw(io.BytesIO(in_data), sample_width=2, frame_rate=16000, channels=1)
+        new_audio = AudioSegment.from_raw(io.BytesIO(in_data), sample_width=2, frame_rate=self.rate, channels=1)
 
         self.thread_lock.acquire()
         self.audio_to_process += new_audio
@@ -113,7 +115,7 @@ class AudioAnalysis:
                 chunks = list(reversed(make_chunks(self.audio_to_process, chunk_duration_ms)))
 
                 for i, chunk in enumerate(chunks[1:]):
-                    if (not self.vad.is_speech(chunk.raw_data, 16000) or
+                    if (not self.vad.is_speech(chunk.raw_data, self.rate) or
                             self.audio_to_process.duration_seconds > self.max_audio_buffer_length):
                         split_at = (len(chunks) - i - 1) * chunk_duration_ms
                         part_to_process = self.audio_to_process[0:split_at]
