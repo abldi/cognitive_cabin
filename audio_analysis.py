@@ -131,7 +131,6 @@ class AudioAnalysis:
                         for observer in self._observers:
                             observer(transcription)
 
-
                         # if transcription != '':
                         #     now = datetime.datetime.now()
                         #     transcripts.append({

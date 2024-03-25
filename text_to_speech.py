@@ -1,9 +1,12 @@
 import os
 import tempfile
+import requests
 
 from elevenlabs import generate, play, stream, voices
 from elevenlabs.client import ElevenLabs
-from gtts.tts import gTTS
+from TTS.api import TTS
+import torch
+from gtts import gTTS
 
 
 class TextToSpeech:
@@ -15,6 +18,15 @@ class TextToSpeech:
     def __init__(self) -> None:
         self.api_key = 'b75619b87fb87caf47e18639e4cf4098' # os.getenv('ELEVENLABS_API_KEY')
         self.client = ElevenLabs(api_key=self.api_key)
+        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        # print(TTS().list_models())
+        # self.tts = TTS(model_name="tts_models/en/thorsten/tacotron2-DDC", progress_bar=False).to(self.device)
+        # self.tts.tts_to_file(text="Ich bin eine Testnachricht.", file_path='./test.wav')
+
+    def display_elevenlabs_usage(self):
+        sub = self.client.user.get_subscription()
+        print(f"Current ElevenLabs subscription is used at {int(sub.character_count * 100 / sub.character_limit)}% "
+              f"[{sub.character_count}/{sub.character_limit} characters]")
 
     def synthesize(self, text, model="eleven_turbo_v2", stream_end_callback=lambda: None):
         if self.mode != 'prod':
