@@ -16,11 +16,11 @@ class TextToSpeech:
     current_voice_index = 0
 
     def __init__(self) -> None:
-        self.api_key = 'b75619b87fb87caf47e18639e4cf4098' # os.getenv('ELEVENLABS_API_KEY')
+        self.api_key = 'b75619b87fb87caf47e18639e4cf4098'  # os.getenv('ELEVENLABS_API_KEY')
         self.client = ElevenLabs(api_key=self.api_key)
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         # print(TTS().list_models())
-        # self.tts = TTS(model_name="tts_models/en/thorsten/tacotron2-DDC", progress_bar=False).to(self.device)
+        # self.tts = TTS(model_name="tts_models/de/thorsten/tacotron2-DDC", progress_bar=False).to(self.device)
         # self.tts.tts_to_file(text="Ich bin eine Testnachricht.", file_path='./test.wav')
 
     def display_elevenlabs_usage(self):

@@ -1,7 +1,7 @@
 import base64
 import cmd
 import json
-from time import time, sleep
+from time import time
 
 import cv2
 import httpx
@@ -57,22 +57,32 @@ class CognitiveCabin(cmd.Cmd):
         self.audio_analysis = AudioAnalysis(self.audio_conf_file)
         self.audio_analysis.add_observer(self.audio_transcript_ready)
 
+    # region audio & STT callbacks
+
     def audio_transcript_ready(self, transcript: str):
         if not self.streaming:
             self.buffered_transcript += transcript + " "
 
-    def audio_stream_finished(self): self.streaming = False
+    def audio_stream_finished(self):
+        self.streaming = False
 
-    def do_api_check(self, arg): self.tts.display_elevenlabs_usage()
+    # endregion
+
+    # region cmd control
+
+    def do_api_check(self, arg):
+        self.tts.display_elevenlabs_usage()
 
     @staticmethod
-    def do_devices(arg): audio_analysis.list_audio_devices()
+    def do_devices(arg):
+        audio_analysis.list_audio_devices()
 
     def do_set_device(self, arg):
         with open(self.audio_conf_file, 'w') as file:
             file.write(arg)
 
-    def do_test_device(self, arg): self.audio_analysis.test_compatibility()
+    def do_test_device(self, arg):
+        self.audio_analysis.test_compatibility()
 
     def do_start(self, arg):
         if self.video_analysis.pause_processing is None:
@@ -86,16 +96,21 @@ class CognitiveCabin(cmd.Cmd):
         self.video_analysis.thread_stop_event.set()
         self.video_analysis_thread = None
 
-    def do_pause(self, arg): self.video_analysis.pause_processing = True
+    def do_pause(self, arg):
+        self.video_analysis.pause_processing = True
 
-    def do_resume(self, arg): self.video_analysis.pause_processing = False
+    def do_resume(self, arg):
+        self.video_analysis.pause_processing = False
 
-    def do_dev(self, arg): self.tts.mode = 'dev'
+    def do_dev(self, arg):
+        self.tts.mode = 'dev'
 
-    def do_prod(self, arg): self.tts.mode = 'prod'
+    def do_prod(self, arg):
+        self.tts.mode = 'prod'
 
     @staticmethod
-    def do_exit(arg): return True
+    def do_exit(arg):
+        return True
 
     def do_update(self, arg):
         ollama.pull('llava')
@@ -114,9 +129,9 @@ class CognitiveCabin(cmd.Cmd):
         for model in ollama_list['models']:
             print(model['name'])
 
-    def process(self, images):
-        global last_json_instructions
+    # endregion
 
+    def process(self, images):
         if self.streaming:
             return False
 
