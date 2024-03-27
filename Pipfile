@@ -14,8 +14,11 @@ elevenlabs = "~=0.3.0b0"
 gtts = "~=2.5.1"
 tts = "*"
 httpx = "*"
-
 faster-whisper = "~=1.0.1"
+
+langchain_text_splitters = "*"
+langchain_openai = "*"
+
 [dev-packages]
 
 [requires]
